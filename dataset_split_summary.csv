@@ -1,7 +1,0 @@
-modality,split,samples
-Text,Train,800
-Text,Validation,100
-Text,Test,100
-Image,Train,800
-Image,Validation,200
-Image,Test,200
