@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="grid-column: 1 / -1;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 28px; font-weight: 300; margin-bottom: 8px;">Liked Posts</h1>
+        <p style="color: var(--text-secondary);">Posts you've liked will appear here</p>
+    </div>
+
+    {% if liked_posts %}
+    <div class="posts-grid">
+        {% for post in liked_posts %}
+        <div class="post-card" style="margin-bottom: 20px;">
+            <div class="post-header">
+                <img loading="lazy" decoding="async" src="{{ avatar(post.author.profile_pic) }}" 
+                     class="profile-pic" alt="{{ post.author.username }}">
+                <div>
+                    <strong>{{ post.author.username }}</strong>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        {{ post.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    </div>
+                </div>
+            </div>
+
+            {% if post.is_video %}
+            <video class="post-media" controls>
+                <source src="{{ post_media(post.image) }}" type="video/mp4">
+            </video>
+            {% else %}
+            <img loading="lazy" decoding="async" src="{{ post_media(post.image) }}" class="post-media" alt="Post image">
+            {% endif %}
+
+            <div class="post-actions">
+                <div class="action-left">
+                    <button class="action-btn liked" data-post-id="{{ post.id }}">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="action-btn comment-focus-btn" data-focus-comment="{{ post.id }}">
+                        <i class="fas fa-comment"></i>
+                    </button>
+                    <button class="action-btn share-btn" data-post-id="{{ post.id }}">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="post-stats">
+                <strong id="like-count-{{ post.id }}">{{ post.likes|length }} likes</strong>
+                <span id="share-count-{{ post.id }}" style="margin-left: 16px; color: var(--text-secondary);">
+                    {{ post.shares|length }} shares
+                </span>
+            </div>
+
+            <div class="post-caption">
+                <strong>{{ post.author.username }}</strong> {{ post.caption }}
+            </div>
+
+            <div class="post-comments" id="comments-{{ post.id }}">
+                {% for comment in post.comments[:2] %}
+                <div class="comment">
+                    <strong>{{ comment.author.username }}</strong> 
+                    {{ comment.text }}
+                    {% if comment.bullying_score > 0.4 %}
+                    <span style="color: var(--danger-color); font-size: 12px;">
+                        🚨 Cyberbullying detected
+                    </span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <form class="comment-form{% if is_blocked %} disabled{% endif %}" data-post-id="{{ post.id }}">
+                <input type="text" class="comment-input" placeholder="Add a comment..." 
+                       id="comment-input-{{ post.id }}" maxlength="1000" required {% if is_blocked %}disabled placeholder="Commenting disabled - account restricted"{% endif %}>
+                <button type="submit" class="comment-btn">Post</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="post-card" style="text-align: center; padding: 60px 20px;">
+        <i class="far fa-heart" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">No liked posts yet</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            Posts you like will be saved here for you to see again.
+        </p>
+        <a href="{{ url_for('explore') }}" class="btn btn-primary">Explore Posts</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

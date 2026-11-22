@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="grid-column: 1 / -1; max-width: 600px; margin: 0 auto;">
+    <div style="margin-bottom: 24px;">
+        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 8px;">Search</h1>
+        <form method="GET" action="{{ url_for('search') }}" style="display: flex; gap: 8px;">
+            <input type="text" name="q" value="{{ query }}" 
+                   placeholder="Search users and posts..." 
+                   class="form-input" style="flex: 1;">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    {% if query %}
+    <div class="search-results">
+        <!-- Users Results -->
+        {% if users %}
+        <div class="post-card" style="margin-bottom: 20px;">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 600;">Users</h3>
+            </div>
+            <div>
+                {% for user_result in users %}
+                <div style="display: flex; align-items: center; justify-content: space-between; 
+                          padding: 16px; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img loading="lazy" decoding="async" src="{{ avatar(user_result.profile_pic) }}" 
+                             class="profile-pic" alt="{{ user_result.username }}">
+                        <div>
+                            <a href="{{ url_for('profile', username=user_result.username) }}" 
+                               style="text-decoration: none; color: var(--text-primary);">
+                                <strong>{{ user_result.username }}</strong>
+                            </a>
+                            <div style="color: var(--text-secondary); font-size: 14px;">
+                                {{ user_result.full_name }}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                {% if user_result.is_private %}
+                                <i class="fas fa-lock"></i> Private account
+                                {% else %}
+                                <i class="fas fa-globe"></i> Public account
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if user_result.id != user.id %}
+                    {% set is_following = user_result in user.following %}
+                    <button class="follow-btn btn {% if is_following %}btn-outline{% else %}btn-primary{% endif %}" 
+                            data-user-id="{{ user_result.id }}"
+                            style="padding: 6px 12px; font-size: 14px;">
+                        {% if is_following %}Following{% else %}Follow{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Posts Results -->
+        {% if posts %}
+        <div class="post-card">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                <h3 style="font-size: 18px; font-weight: 600;">Posts</h3>
+            </div>
+            <div>
+                {% for post in posts %}
+                <div class="post-card" style="margin: 0; border: none; border-bottom: 1px solid var(--border-color);">
+                    <div class="post-header">
+                        <img loading="lazy" decoding="async" src="{{ avatar(post.author.profile_pic) }}" 
+                             class="profile-pic" alt="{{ post.author.username }}">
+                        <div>
+                            <strong>{{ post.author.username }}</strong>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                {{ post.created_at.strftime('%b %d, %Y') }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if post.is_video %}
+                    <video class="post-media" controls style="max-height: 400px;">
+                        <source src="{{ post_media(post.image) }}" type="video/mp4">
+                    </video>
+                    {% else %}
+                    <img loading="lazy" decoding="async" src="{{ post_media(post.image) }}" 
+                         class="post-media" style="max-height: 400px;" alt="Post image">
+                    {% endif %}
+
+                    <div class="post-caption" style="padding: 12px 16px;">
+                        <strong>{{ post.author.username }}</strong> {{ post.caption }}
+                    </div>
+
+                    <div class="post-stats" style="padding: 0 16px 8px;">
+                        <strong>{{ post.likes|length }} likes</strong>
+                        <span style="margin-left: 16px; color: var(--text-secondary);">
+                            {{ post.comments|length }} comments
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- No Results -->
+        {% if not users and not posts %}
+        <div class="post-card" style="text-align: center; padding: 60px 20px;">
+            <i class="fas fa-search" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+            <h3 style="margin-bottom: 12px; color: var(--text-secondary;">No results found</h3>
+            <p style="color: var(--text-secondary);">
+                No users or posts found for "{{ query }}"
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="post-card" style="text-align: center; padding: 60px 20px;">
+        <i class="fas fa-search" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary;">Search Users and Posts</h3>
+        <p style="color: var(--text-secondary);">
+            Enter a username, full name, or post caption to search
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

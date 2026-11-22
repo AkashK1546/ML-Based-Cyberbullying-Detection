@@ -1,0 +1,121 @@
+{#
+  Emoji analysis panel, shared by the feed card (index.html) and the full analysis page (post_analysis.html).
+  Needs:     emoji    - the dict stored in the post analysis (emoji_analysis.combine)
+  Optional:  compact  - true for the smaller feed-card version
+  Styles live in static/css/base.css (classes start with "ea-").
+#}
+{% macro lvl(level) -%}{{ 'ea-danger' if level == 'high' else 'ea-warning' if level == 'medium' else 'ea-safe' }}{%- endmacro %}
+{% macro lvl_text(level) -%}{{ '🚨 High Risk' if level == 'high' else '⚠️ Medium Risk' if level == 'medium' else '✅ Low Risk' }}{%- endmacro %}
+{% macro sent(label) -%}{{ 'ea-pos' if label in ('Positive', 'Friendly') else 'ea-neg' if label in ('Negative', 'Hostile') else 'ea-mixed' if label == 'Mixed' else 'ea-neutral' }}{%- endmacro %}
+
+{% macro text_block(title, icon, r, empty_msg) %}
+<div class="ea-block">
+    <div class="ea-block-head">
+        <span><i class="fas {{ icon }}"></i> {{ title }}</span>
+        {% if r and r.has_emoji %}<span class="ea-pill {{ lvl(r.risk_level) }}">{{ lvl_text(r.risk_level) }}</span>{% endif %}
+    </div>
+    {% if r and r.has_emoji %}
+        <div class="ea-chips">
+            {% for t in r.top %}
+            <span class="ea-chip ea-cat-{{ t.category }}" title="{{ t.name }} · {{ t.category_label }}">
+                <span class="ea-glyph">{{ t.emoji }}</span>{% if t.count > 1 %}<span class="ea-count">×{{ t.count }}</span>{% endif %}
+            </span>
+            {% endfor %}
+        </div>
+
+        <div class="ea-meta">
+            <span><strong>{{ r.total }}</strong> emoji{{ '' if r.total == 1 else 's' }}{% if r.emoticons %} ({{ r.emoticons }} emoticon{{ '' if r.emoticons == 1 else 's' }}){% endif %}</span>
+            <span><strong>{{ r.unique }}</strong> unique</span>
+            <span><strong>{{ '%.0f'|format(r.density * 100) }}%</strong> of the content</span>
+            <span class="ea-pill {{ sent(r.sentiment_label) }}">{{ r.sentiment_label }} sentiment ({{ '%+.2f'|format(r.sentiment_score) }})</span>
+            <span>Risk <strong>{{ '%.4f'|format(r.risk_score) }}</strong></span>
+        </div>
+
+        <div class="ea-stack" role="img" aria-label="Emoji categories">
+            {% for cat, n in r.categories.items() %}
+            <div class="ea-seg ea-cat-{{ cat }}" style="width: {{ (n / r.total * 100)|round(1) }}%"
+                 title="{{ cat|capitalize }}: {{ n }}"></div>
+            {% endfor %}
+        </div>
+        <div class="ea-legend">
+            {% for cat, n in r.categories.items() %}
+            <span><i class="ea-dot ea-cat-{{ cat }}"></i>{{ cat|capitalize }} {{ n }}</span>
+            {% endfor %}
+        </div>
+
+        {% if r.flags %}
+        <ul class="ea-flags">
+            {% for f in r.flags %}<li><i class="fas fa-exclamation-triangle"></i> {{ f }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+    {% else %}
+        <p class="ea-empty">{{ empty_msg }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% if emoji %}
+{% set img = emoji.image %}
+{% set img_unavailable = img.available is defined and img.available == false %}
+<div class="ea-panel {{ 'ea-compact' if compact }}">
+    {# ---------- summary tiles ---------- #}
+    <div class="ea-tiles">
+        <div class="ea-tile">
+            <div class="ea-tile-label">Emojis in text</div>
+            <div class="ea-tile-value">{{ emoji.total_text_emojis }}</div>
+            <div class="ea-tile-sub">caption + text in image</div>
+        </div>
+        <div class="ea-tile">
+            <div class="ea-tile-label">Emoji sentiment</div>
+            <div class="ea-tile-value ea-small">
+                {% if emoji.overall_sentiment_score is none %}—{% else %}<span class="ea-pill {{ sent(emoji.overall_sentiment_label) }}">{{ emoji.overall_sentiment_label }}</span>{% endif %}
+            </div>
+            <div class="ea-tile-sub">{% if emoji.overall_sentiment_score is not none %}{{ '%+.2f'|format(emoji.overall_sentiment_score) }} (−1 … +1){% else %}no emojis{% endif %}</div>
+        </div>
+        <div class="ea-tile {{ lvl(emoji.overall_risk_level) }}">
+            <div class="ea-tile-label">Emoji risk score</div>
+            <div class="ea-tile-value">{{ '%.4f'|format(emoji.overall_risk_score) }}</div>
+            <div class="ea-tile-sub">{{ lvl_text(emoji.overall_risk_level) }}</div>
+        </div>
+    </div>
+
+    {% if not emoji.has_any and not img_unavailable %}
+        <p class="ea-empty ea-empty-main">😶 No emojis found in the caption, in the text inside the image, or in the picture itself.</p>
+    {% else %}
+        {# ---------- TEXT side ---------- #}
+        <h4 class="ea-section"><i class="fas fa-font"></i> In the text</h4>
+        <div class="ea-cols">
+            {{ text_block('Caption', 'fa-comment-dots', emoji.caption, 'No emojis in the caption.') }}
+            {{ text_block('Text inside the image (OCR)', 'fa-text-height', emoji.ocr, 'No emojis in the text read from the image.') }}
+        </div>
+
+        {# ---------- IMAGE side ---------- #}
+        <h4 class="ea-section"><i class="fas fa-image"></i> In the image</h4>
+        <div class="ea-block">
+            {% if img_unavailable %}
+                <p class="ea-empty">The picture could not be checked for emojis right now (the AI models were not loaded). Open this page again once they have finished loading.</p>
+            {% elif img.detected %}
+                <div class="ea-block-head">
+                    <span>😀 Emojis / emoji stickers detected in the picture</span>
+                    <span class="ea-pill {{ lvl(img.risk_level) }}">{{ lvl_text(img.risk_level) }}</span>
+                </div>
+                <div class="ea-meta">
+                    <span>Detection confidence <strong>{{ '%.1f'|format(img.presence_confidence) }}%</strong></span>
+                    <span class="ea-pill {{ sent(img.sentiment_label) }}">{{ img.sentiment_label }} tone</span>
+                    <span>Risk <strong>{{ '%.4f'|format(img.risk_score) }}</strong></span>
+                </div>
+                {% for key, name in (('friendly', 'Friendly / happy'), ('neutral', 'Neutral'), ('hostile', 'Angry / mocking / hostile')) %}
+                <div class="ea-bar-row">
+                    <span class="ea-bar-label">{{ name }}</span>
+                    <div class="ea-bar"><div class="ea-bar-fill ea-bar-{{ key }}" style="width: {{ img.sentiment_probs[key] }}%"></div></div>
+                    <span class="ea-bar-val">{{ '%.1f'|format(img.sentiment_probs[key]) }}%</span>
+                </div>
+                {% endfor %}
+                <p class="ea-note">{{ img.method }} — an estimate of what the picture shows, so treat it as a signal rather than proof.</p>
+            {% else %}
+                <p class="ea-empty">No emojis or emoji stickers detected in the picture ({{ '%.1f'|format(img.presence_confidence) }}% match).</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}

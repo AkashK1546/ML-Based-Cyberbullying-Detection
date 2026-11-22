@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-container">
+    <div class="analysis-container">
+        <div class="analysis-header">
+            <h1><i class="fas fa-chart-bar"></i> Post Analysis</h1>
+            <p>Cyberbullying detection results for this post</p>
+        </div>
+
+        <div class="post-preview">
+            <div class="post-card glass">
+                <div class="post-header">
+                    <div class="post-user">
+                        <img loading="lazy" decoding="async" src="{{ avatar(post.author.profile_pic) }}" 
+                             alt="{{ post.author.username }}">
+                        <div class="post-user-info">
+                            <a href="{{ url_for('profile', username=post.author.username) }}" 
+                               class="post-username">{{ post.author.username }}</a>
+                            <span class="post-time">{{ post.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="post-image">
+                    <img loading="lazy" decoding="async" src="{{ post_media(post.image) }}" 
+                         alt="Post image">
+                </div>
+                
+                {% if post.caption %}
+                <div class="post-caption">
+                    <a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a>
+                    <span>{{ post.caption }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="analysis-results">
+            <!-- Image Analysis Results -->
+            {% if image_predictions %}
+            <div class="analysis-section glass">
+                <h2><i class="fas fa-image"></i> Image Analysis</h2>
+                <div class="bullying-score">
+                    <div class="score-card {% if image_bullying_score > 0.5 %}danger{% elif image_bullying_score > 0.3 %}warning{% else %}safe{% endif %}">
+                        <h3>Overall Image Bullying Score</h3>
+                        <div class="score-value">{{ "%.4f"|format(image_bullying_score) }}</div>
+                        <div class="score-status">
+                            {% if image_bullying_score > 0.5 %}
+                                🚨 High Risk
+                            {% elif image_bullying_score > 0.3 %}
+                                ⚠️ Medium Risk
+                            {% else %}
+                                ✅ Low Risk
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="predictions-grid">
+                    {% for category, prediction in image_predictions.items() if category not in ('emoji_presence', 'emoji_sentiment') %}
+                    <div class="prediction-card {% if prediction.predicted in ['Bully', 'Very-Harmful', 'Partially-Harmful'] %}risky{% else %}safe{% endif %}">
+                        <h4>{{ category }}</h4>
+                        <div class="prediction-result">
+                            <span class="predicted-label">{{ prediction.predicted }}</span>
+                            <span class="confidence">({{ "%.2f"|format(prediction.confidence * 100) }}%)</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: {{ prediction.confidence * 100 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- OCR Extracted Text Analysis Results -->
+            <div class="analysis-section glass">
+                <h2><i class="fas fa-text-height"></i> OCR Extracted Text from Image</h2>
+                
+                {% if ocr_text and ocr_text.text %}
+                <div class="ocr-info">
+                    <div class="ocr-stats">
+                        <div class="stat-badge">
+                            <i class="fas fa-language"></i>
+                            <span>{{ ocr_text.word_count }} words detected</span>
+                        </div>
+                        <div class="stat-badge">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Confidence: {{ "%.1f"|format(ocr_confidence * 100) }}%</span>
+                        </div>
+                        <div class="stat-badge">
+                            <i class="fas fa-images"></i>
+                            <span>{{ ocr_text.detections }} text regions</span>
+                        </div>
+                    </div>
+                    
+                    <div class="extracted-text-box">
+                        <h4><i class="fas fa-quote-left"></i> Extracted Text:</h4>
+                        <div class="extracted-text-content">
+                            <p>{{ ocr_text.text }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if ocr_bullying_score %}
+                    <div class="bullying-score">
+                        <div class="score-card {% if ocr_bullying_score > 0.4 %}danger{% elif ocr_bullying_score > 0.2 %}warning{% else %}safe{% endif %}">
+                            <h3>OCR Text Bullying Score</h3>
+                            <div class="score-value">{{ "%.4f"|format(ocr_bullying_score) }}</div>
+                            <div class="score-status">
+                                {% if ocr_bullying_score > 0.4 %}
+                                    🚨 High Risk (Cyberbullying detected in image text)
+                                {% elif ocr_bullying_score > 0.2 %}
+                                    ⚠️ Medium Risk (Potentially harmful text in image)
+                                {% else %}
+                                    ✅ Low Risk (Safe text content in image)
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if ocr_bullying_score > 0.2 %}
+                    <div class="text-analysis-details">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Text Analysis Details:</h4>
+                        <div class="warning-message">
+                            <i class="fas fa-shield-alt"></i>
+                            <p>The extracted text from this image contains potentially harmful content that may violate community guidelines.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                
+                {% elif ocr_text and ocr_text.text == "" %}
+                <div class="ocr-info">
+                    <div class="extracted-text-box">
+                        <h4><i class="fas fa-info-circle"></i> No Text Detected</h4>
+                        <div class="extracted-text-content">
+                            <p class="no-text-message">No readable text was found in this image.</p>
+                            <p class="no-text-note"><small>Note: OCR works best with clear, high-contrast text in standard fonts.</small></p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% else %}
+                <div class="ocr-info">
+                    <div class="extracted-text-box">
+                        <h4><i class="fas fa-hourglass-half"></i> Analyzing Image Text</h4>
+                        <div class="extracted-text-content">
+                            <p class="no-text-message">OCR analysis in progress or not available.</p>
+                            <p class="no-text-note"><small>Text extraction from images may take a few moments.</small></p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Text Analysis Results -->
+            {% if post.caption %}
+            <div class="analysis-section glass">
+                <h2><i class="fas fa-font"></i> Caption Analysis</h2>
+                <div class="bullying-score">
+                    <div class="score-card {% if text_bullying_score > 0.4 %}danger{% elif text_bullying_score > 0.2 %}warning{% else %}safe{% endif %}">
+                        <h3>Text Bullying Score</h3>
+                        <div class="score-value">{{ "%.4f"|format(text_bullying_score) }}</div>
+                        <div class="score-status">
+                            {% if text_bullying_score > 0.4 %}
+                                🚨 High Risk
+                            {% elif text_bullying_score > 0.2 %}
+                                ⚠️ Medium Risk
+                            {% else %}
+                                ✅ Low Risk
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="caption-text">
+                    <h4>Original Caption:</h4>
+                    <p>"{{ post.caption }}"</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Emoji Analysis: text (caption + OCR text) and image -->
+            {% if emoji %}
+            <div class="analysis-section glass">
+                <h2><i class="fas fa-smile"></i> Emoji Analysis</h2>
+                {% with compact=false %}{% include '_emoji_analysis.html' %}{% endwith %}
+            </div>
+            {% endif %}
+
+            <!-- Reputation Impact -->
+            <div class="analysis-section glass">
+                <h2><i class="fas fa-chart-line"></i> Reputation Impact</h2>
+                <div class="reputation-info">
+                    <div class="reputation-card">
+                        <h4>Author's Current Reputation</h4>
+                        <div class="reputation-score {% if post.author.reputation_score < 5 %}low{% elif post.author.reputation_score < 7 %}medium{% else %}high{% endif %}">
+                            {{ "%.1f"|format(post.author.reputation_score) }}/10
+                        </div>
+                        <div class="reputation-status">
+                            {% if post.author.reputation_score < 5 %}
+                                🔴 Restricted Account
+                            {% elif post.author.reputation_score < 7 %}
+                                🟡 Warning Level
+                            {% else %}
+                                🟢 Good Standing
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Feed
+            </a>
+            <a href="{{ url_for('profile', username=post.author.username) }}" class="btn btn-glass">
+                <i class="fas fa-user"></i> View Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.analysis-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.analysis-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.analysis-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.analysis-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+}
+
+.post-preview {
+    margin-bottom: 40px;
+}
+
+.analysis-results {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.analysis-section {
+    padding: 30px;
+    border-radius: 20px;
+}
+
+.analysis-section h2 {
+    color: white;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+}
+
+.bullying-score {
+    margin-bottom: 25px;
+}
+
+.score-card {
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.score-card.safe {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1));
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.score-card.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 191, 36, 0.1));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.score-card.danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.score-card h3 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.score-value {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.score-card.safe .score-value {
+    background: linear-gradient(135deg, var(--success), var(--success-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.score-card.warning .score-value {
+    background: linear-gradient(135deg, var(--warning), var(--accent-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.score-card.danger .score-value {
+    background: linear-gradient(135deg, var(--danger), var(--danger-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.score-status {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.prediction-card {
+    padding: 20px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.prediction-card.safe {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.prediction-card.risky {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.prediction-card h4 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.prediction-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.predicted-label {
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.confidence {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.caption-text {
+    margin-top: 20px;
+}
+
+.caption-text h4 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+.caption-text p {
+    color: rgba(255, 255, 255, 0.9);
+    font-style: italic;
+    line-height: 1.5;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+}
+
+.reputation-info {
+    display: flex;
+    justify-content: center;
+}
+
+.reputation-card {
+    text-align: center;
+    padding: 25px;
+}
+
+.reputation-card h4 {
+    color: white;
+    margin-bottom: 15px;
+}
+
+.reputation-score {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.reputation-score.high {
+    background: linear-gradient(135deg, var(--success), var(--success-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.reputation-score.medium {
+    background: linear-gradient(135deg, var(--warning), var(--accent-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.reputation-score.low {
+    background: linear-gradient(135deg, var(--danger), var(--danger-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.reputation-status {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.analysis-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* OCR Specific Styles */
+.ocr-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-badge i {
+    color: var(--primary);
+}
+
+.extracted-text-box {
+    margin: 20px 0;
+}
+
+.extracted-text-box h4 {
+    color: white;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.extracted-text-content {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.extracted-text-content p {
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.6;
+    font-size: 1rem;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.no-text-message {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-style: italic;
+}
+
+.no-text-note {
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    margin-top: 10px;
+}
+
+.text-analysis-details {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 10px;
+    border-left: 4px solid var(--danger);
+}
+
+.warning-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fca5a5;
+}
+
+.warning-message i {
+    font-size: 1.2rem;
+}
+
+.warning-message p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 768px) {
+    .analysis-container {
+        padding: 20px 15px;
+    }
+    
+    .predictions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analysis-actions {
+        flex-direction: column;
+    }
+    
+    .analysis-actions .btn {
+        width: 100%;
+    }
+    
+    .ocr-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .stat-badge {
+        width: fit-content;
+    }
+}
+</style>
+{% endblock %}

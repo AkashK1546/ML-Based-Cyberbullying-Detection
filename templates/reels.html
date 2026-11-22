@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="grid-column: 1 / -1; max-width: 400px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 28px; font-weight: 300; margin-bottom: 8px;">Reels</h1>
+        <p style="color: var(--text-secondary);">Short, entertaining videos from creators you follow</p>
+    </div>
+
+    {% if reels %}
+    <div class="reels-container">
+        {% for reel in reels %}
+        <div class="reel-card" style="background: var(--bg-primary); border-radius: 12px; margin-bottom: 20px; overflow: hidden;">
+            <!-- Reel Header -->
+            <div style="padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <img loading="lazy" decoding="async" src="{{ avatar(reel.author.profile_pic) }}" 
+                     class="profile-pic" alt="{{ reel.author.username }}">
+                <div>
+                    <strong>{{ reel.author.username }}</strong>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        {{ reel.created_at.strftime('%b %d') }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reel Video -->
+            <div style="position: relative; background: black;">
+                <video controls style="width: 100%; max-height: 600px; display: block;">
+                    <source src="{{ reel_media(reel.video) }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            
+            <!-- Reel Actions -->
+            <div style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 16px;">
+                        <button class="action-btn" onclick="likeReel(this)">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <button class="action-btn" onclick="focusComment('reel-{{ reel.id }}')">
+                            <i class="far fa-comment"></i>
+                        </button>
+                        <button class="action-btn" onclick="shareReel({{ reel.id }})">
+                            <i class="far fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <button class="action-btn">
+                        <i class="far fa-bookmark"></i>
+                    </button>
+                </div>
+                
+                <!-- Reel Caption -->
+                <div style="margin-top: 8px;">
+                    <strong>{{ reel.author.username }}</strong> {{ reel.caption }}
+                </div>
+                
+                <!-- Comments Section -->
+                <div style="margin-top: 12px;">
+                    <div class="comment-form">
+                        <input type="text" class="comment-input" placeholder="Add a comment..." 
+                               id="reel-comment-{{ reel.id }}">
+                        <button class="comment-btn" onclick="addReelComment({{ reel.id }})">Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="post-card" style="text-align: center; padding: 60px 20px;">
+        <i class="fas fa-video" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">No reels yet</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            When people you follow share reels, they'll appear here.
+        </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Feed</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .reels-container {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+    
+    .reel-card {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-primary);
+        padding: 8px;
+    }
+</style>
+
+<script>
+    function likeReel(button) {
+        const icon = button.querySelector('i');
+        if (icon.classList.contains('far')) {
+            icon.classList.replace('far', 'fas');
+            icon.style.color = 'var(--danger-color)';
+        } else {
+            icon.classList.replace('fas', 'far');
+            icon.style.color = 'var(--text-primary)';
+        }
+    }
+    
+    function shareReel(reelId) {
+        alert('Share reel ' + reelId + ' - This would open share options in a real implementation.');
+    }
+    
+    function focusComment(reelId) {
+        document.getElementById('reel-comment-' + reelId).focus();
+    }
+    
+    function addReelComment(reelId) {
+        const input = document.getElementById('reel-comment-' + reelId);
+        const comment = input.value.trim();
+        
+        if (comment) {
+            alert('Comment added: ' + comment);
+            input.value = '';
+        }
+    }
+    
+    // Auto-play reels when they come into view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const video = entry.target.querySelector('video');
+            if (entry.isIntersecting) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    document.querySelectorAll('.reel-card').forEach(card => {
+        observer.observe(card);
+    });
+</script>
+{% endblock %}

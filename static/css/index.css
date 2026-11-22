@@ -1,0 +1,452 @@
+/* Additional CSS for proper alignment */
+.feed-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Enhanced post card styling */
+.post-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    margin-bottom: 0;
+    box-shadow: var(--shadow-soft);
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+    overflow: hidden;
+}
+
+/* Analysis Results Styling */
+.analysis-results-card {
+    border: 2px solid;
+    animation: slideInDown 0.5s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.analysis-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Score Cards */
+.score-card {
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+}
+
+.score-safe {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.score-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.score-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.score-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.score-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.score-safe .score-value {
+    color: var(--success-color);
+}
+
+.score-warning .score-value {
+    color: var(--warning-color);
+}
+
+.score-danger .score-value {
+    color: var(--danger-color);
+}
+
+.score-status {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Badge styles */
+.badge-safe {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.badge-warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning-color);
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+/* OCR Section */
+.ocr-section {
+    background: rgba(64, 93, 230, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(64, 93, 230, 0.2);
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+}
+
+.ocr-section:hover {
+    background: rgba(64, 93, 230, 0.08);
+    border-color: rgba(64, 93, 230, 0.3);
+}
+
+.extracted-text-box {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+}
+
+.extracted-text-box:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Predictions Grid */
+.predictions-section {
+    border-top: 1px solid rgba(219, 219, 219, 0.3);
+    padding-top: 16px;
+}
+
+.predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.prediction-item {
+    padding: 10px;
+    border-radius: 8px;
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+}
+
+.prediction-safe {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.prediction-risky {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.1);
+    animation: glow 2s infinite;
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+}
+
+.prediction-category {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.prediction-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.prediction-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.prediction-confidence {
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: var(--gradient-1);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Pulse animation for alerts */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive design for analysis */
+@media (max-width: 768px) {
+    .predictions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .score-card {
+        padding: 10px;
+    }
+    
+    .analysis-status {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+}
+
+.post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Improved comment form styling */
+.comment-form {
+    border-top: 1px solid rgba(219, 219, 219, 0.3);
+    padding: 16px;
+    background: rgba(250, 250, 250, 0.5);
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.comment-input {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(219, 219, 219, 0.5) !important;
+    border-radius: 20px !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease !important;
+    flex: 1;
+}
+
+.comment-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(64, 93, 230, 0.1) !important;
+    background: rgba(255, 255, 255, 1) !important;
+    outline: none;
+}
+
+.comment-btn {
+    background: var(--gradient-1) !important;
+    border: none !important;
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 20px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease !important;
+    min-width: 80px !important;
+    font-size: 14px !important;
+}
+
+.comment-btn:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-soft) !important;
+}
+
+.comment-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* Bullying detection styling */
+.comment.bullying-detected {
+    background: rgba(255, 243, 205, 0.3);
+    border-left: 3px solid var(--warning-color);
+    padding: 8px 12px;
+    margin: 4px -12px;
+    border-radius: 0 8px 8px 0;
+}
+
+/* Character counter styling */
+.char-counter {
+    text-align: right;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* Post options hover effect */
+.post-options i:hover {
+    background: rgba(64, 93, 230, 0.1);
+    color: var(--primary-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .feed-container {
+        width: 100%;
+    }
+    
+    .post-card {
+        margin-bottom: 16px;
+    }
+}
+
+/* Loading animation for buttons */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* Enhanced file input styling */
+input[type="file"] {
+    transition: transform .2s, box-shadow .2s, background-color .2s, opacity .2s 0.3s ease;
+}
+
+input[type="file"]:hover {
+    border-color: var(--primary-color) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Profile picture consistency */
+.profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid transparent;
+    background: var(--gradient-1);
+    padding: 2px;
+    flex-shrink: 0;
+}
+
+.profile-pic-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Action buttons alignment */
+.post-actions {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.action-left {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+/* Stats and caption alignment */
+.post-stats {
+    padding: 0 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.post-caption {
+    padding: 0 16px 12px;
+    line-height: 1.4;
+    font-size: 14px;
+}
+
+.post-comments {
+    padding: 0 16px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for comments */
+.post-comments::-webkit-scrollbar {
+    width: 4px;
+}
+
+.post-comments::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.post-comments::-webkit-scrollbar-thumb {
+    background: var(--gradient-1);
+    border-radius: 10px;
+}
+
+.post-comments::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}

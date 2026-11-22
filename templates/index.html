@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">{% endblock %}
+
+{% block content %}
+<div class="feed-container">
+    <!-- Upload Section -->
+    <div class="post-card">
+        <div class="post-header">
+            <div class="profile-pic">
+                <img loading="lazy" decoding="async" src="{{ avatar(user.profile_pic) }}" 
+                     class="profile-pic-img" alt="{{ user.username }}">
+            </div>
+            <strong>{{ user.username }}</strong>
+        </div>
+        {% if is_blocked %}
+        <div style="padding:16px;color:var(--danger-color);font-weight:600;"><i class="fas fa-ban"></i> Uploading is disabled while your account is restricted.</div>
+        {% else %}
+        <form action="{{ url_for('upload_post') }}" method="POST" enctype="multipart/form-data" class="upload-form" data-busy-text="Analyzing…">
+            <div style="padding: 16px;">
+                <div style="margin-bottom: 12px;">
+                    <input type="file" name="image" id="imageInput" accept="image/*" required 
+                           style="width: 100%; padding: 10px; border: 2px dashed var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.8);">
+                </div>
+                <textarea name="caption" maxlength="500" placeholder="What's on your mind, {{ user.username }}? ✨" 
+                         style="width: 100%; margin-top: 8px; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; resize: vertical; min-height: 80px; font-family: inherit;"></textarea>
+                <div class="char-counter" style="text-align: right; margin-top: 5px; color: var(--text-secondary); font-size: 12px;">
+                    <span id="charCount">0</span>/500
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 12px; width: 100%;">
+                    <i class="fas fa-paper-plane"></i> Share Post
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    
+    <!-- Cyberbullying Analysis Results -->
+    {% if analysis_results %}
+    {# ----- Resolve analysis payload safely ----- #}
+    {% set ar = analysis_results.analysis_results if analysis_results.analysis_results is defined and analysis_results.analysis_results else analysis_results %}
+
+    {# ----- Normalize values with safe defaults ----- #}
+    {% set img_score  = (ar.image_bullying_score if ar.image_bullying_score is defined else (analysis_results.image_bullying_score if analysis_results.image_bullying_score is defined else 0)) or 0 %}
+    {% set txt_score  = (ar.text_bullying_score  if ar.text_bullying_score  is defined else 0) or 0 %}
+    {% set ocr_score  = (ar.ocr_bullying_score   if ar.ocr_bullying_score   is defined else 0) or 0 %}
+    {% set clip_score = (ar.clip_bullying_score  if ar.clip_bullying_score  is defined else 0) or 0 %}
+    {% set comb_score = (ar.combined_score       if ar.combined_score       is defined else 0) or 0 %}
+    {% set overall    = (ar.overall_status       if ar.overall_status       is defined else 'Safe Content') %}
+    {% set ocr_txt    = (ar.ocr_text             if ar.ocr_text             is defined else None) %}
+    {% set ocr_conf   = (ar.ocr_confidence       if ar.ocr_confidence       is defined else 0) or 0 %}
+
+    <div class="analysis-results-card post-card">
+        <div class="post-header">
+            <div class="profile-pic">
+                <img loading="lazy" decoding="async" src="{{ avatar(user.profile_pic) }}" 
+                     class="profile-pic-img" alt="{{ user.username }}">
+            </div>
+            <div style="flex: 1;">
+                <strong>AI Safety Analysis</strong>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    Post Analysis Results
+                </div>
+            </div>
+            <div class="analysis-status {% if overall == 'Cyberbullying Detected' %}status-danger{% elif overall == 'Safe Content' %}status-success{% else %}status-warning{% endif %}">
+                {{ overall }}
+            </div>
+        </div>
+
+        <div style="padding: 16px;">
+            <!-- Overall Scores (CLIP + Text) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div class="score-card {% if img_score > 0.5 %}score-danger{% elif img_score > 0.3 %}score-warning{% else %}score-safe{% endif %}">
+                    <div class="score-label">Image Model</div>
+                    <div class="score-value">{{ "%.4f"|format(img_score) }}</div>
+                    <div class="score-status">
+                        {% if img_score > 0.5 %}
+                        🚨 High Risk
+                        {% elif img_score > 0.3 %}
+                        ⚠️ Medium Risk
+                        {% else %}
+                        ✅ Low Risk
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="score-card {% if txt_score > 0.4 %}score-danger{% elif txt_score > 0.2 %}score-warning{% else %}score-safe{% endif %}">
+                    <div class="score-label">Caption Text</div>
+                    <div class="score-value">{{ "%.4f"|format(txt_score) }}</div>
+                    <div class="score-status">
+                        {% if txt_score > 0.4 %}
+                        🚨 High Risk
+                        {% elif txt_score > 0.2 %}
+                        ⚠️ Medium Risk
+                        {% else %}
+                        ✅ Low Risk
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combined Score Banner -->
+            <div style="margin-bottom: 16px; padding: 12px; background: rgba(64, 93, 230, 0.08); border-radius: 12px; border-left: 4px solid var(--primary-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600;">Combined Bullying Score</span>
+                    <span style="font-weight: 700; color: {% if comb_score > 0.5 %}var(--danger-color){% elif comb_score > 0.3 %}var(--warning-color){% else %}var(--success-color){% endif %};">
+                        {{ "%.4f"|format(comb_score) }}
+                    </span>
+                </div>
+                {% if ar.clip_overall_label is defined and ar.clip_overall_label %}
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">
+                    🏷️ Overall: <strong>{{ ar.clip_overall_label }}</strong>
+                    ({{ "%.1f"|format(ar.clip_overall_conf or 0) }}%)
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- OCR Extracted Text Section -->
+            {% if ocr_txt %}
+            <div class="ocr-section" style="margin-bottom: 16px; padding: 12px; background: rgba(64, 93, 230, 0.05); border-radius: 12px; border: 1px solid rgba(64, 93, 230, 0.2);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <i class="fas fa-text-height" style="color: var(--primary-color);"></i>
+                    <strong style="font-size: 14px;">📄 Text Extracted from Image (OCR)</strong>
+                    {% if ocr_conf %}
+                    <span class="stat-badge" style="margin-left: auto; font-size: 11px; padding: 4px 8px;">
+                        <i class="fas fa-chart-line"></i> Confidence: {{ "%.1f"|format(ocr_conf * 100) }}%
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="extracted-text-box" style="background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <i class="fas fa-quote-left" style="color: var(--primary-color); font-size: 16px; margin-top: 2px;"></i>
+                        <p style="margin: 0; color: var(--text-primary); line-height: 1.5; font-size: 14px; font-style: italic;">
+                            "{{ ocr_txt }}"
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="ocr-bullying-score" style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span style="font-size: 12px; color: var(--text-secondary);">OCR Text Analysis:</span>
+                        <span class="score-badge {% if ocr_score > 0.4 %}badge-danger{% elif ocr_score > 0.2 %}badge-warning{% else %}badge-safe{% endif %}" 
+                              style="padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                            {% if ocr_score > 0.4 %}
+                                🚨 High Risk
+                            {% elif ocr_score > 0.2 %}
+                                ⚠️ Medium Risk
+                            {% else %}
+                                ✅ Low Risk
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="confidence-bar" style="margin-top: 6px;">
+                        <div class="confidence-fill" style="width: {{ ocr_score * 100 }}%; background: {% if ocr_score > 0.4 %}linear-gradient(90deg, var(--danger), var(--danger-glow)){% elif ocr_score > 0.2 %}linear-gradient(90deg, var(--warning), var(--accent-glow)){% else %}linear-gradient(90deg, var(--success), var(--success-glow)){% endif %};"></div>
+                    </div>
+                    <div style="text-align: right; margin-top: 4px;">
+                        <span style="font-size: 11px; color: var(--text-secondary);">Score: {{ "%.4f"|format(ocr_score) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Emoji Analysis: text (caption + OCR text) and image -->
+            {% if ar.emoji is defined and ar.emoji %}
+            <div style="margin-bottom: 16px;">
+                <h4 style="margin-bottom: 12px; color: var(--text-primary); font-size: 14px;">
+                    <i class="fas fa-smile"></i> Emoji Analysis
+                </h4>
+                {% with emoji=ar.emoji, compact=true %}{% include '_emoji_analysis.html' %}{% endwith %}
+            </div>
+            {% endif %}
+
+            <!-- Detailed Predictions (supports both old and new CLIP format) -->
+            {% set preds = ar.image_predictions if ar.image_predictions is defined else None %}
+            {% if preds %}
+            <div class="predictions-section">
+                <h4 style="margin-bottom: 12px; color: var(--text-primary); font-size: 14px;">
+                    <i class="fas fa-chart-bar"></i> Detailed Analysis Results
+                </h4>
+                <div class="predictions-grid">
+                    {% for category, prediction in preds.items() if category not in ('emoji_presence', 'emoji_sentiment') %}
+                        {% if prediction is mapping and prediction.predicted is defined %}
+                            {# Old/legacy format: {predicted, confidence} #}
+                            {% set pred_label = prediction.predicted %}
+                            {% set pred_conf  = prediction.confidence %}
+                            <div class="prediction-item {% if pred_label in ['Bully', 'Very-Harmful', 'Partially-Harmful', 'cyberbullying or targeted online harassment', 'offensive, insulting or abusive content', 'violent, threatening or physically aggressive content', 'hate speech or targeted abuse against a person or group', 'very harmful, threatening or severely abusive content', 'partially harmful or mildly harmful content', 'negative and hostile sentiment'] %}prediction-risky{% else %}prediction-safe{% endif %}">
+                                <div class="prediction-category">{{ category }}</div>
+                                <div class="prediction-result">
+                                    <span class="prediction-label">{{ pred_label }}</span>
+                                    <span class="prediction-confidence">({{ "%.2f"|format(pred_conf * 100) }}%)</span>
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ pred_conf * 100 }}%"></div>
+                                </div>
+                            </div>
+                        {% elif prediction is mapping %}
+                            {# New CLIP format: {label: score_in_%} #}
+                            {% set top_label = prediction|dictsort(by='value')|last %}
+                            {% set pred_label = top_label[0] %}
+                            {% set pred_conf  = (top_label[1] / 100.0) %}
+                            <div class="prediction-item {% if pred_label in ['cyberbullying or targeted online harassment', 'offensive, insulting or abusive content', 'violent, threatening or physically aggressive content', 'hate speech or targeted abuse against a person or group', 'very harmful, threatening or severely abusive content', 'partially harmful or mildly harmful content', 'negative and hostile sentiment'] %}prediction-risky{% else %}prediction-safe{% endif %}">
+                                <div class="prediction-category">{{ category }}</div>
+                                <div class="prediction-result">
+                                    <span class="prediction-label">{{ pred_label }}</span>
+                                    <span class="prediction-confidence">({{ "%.2f"|format(pred_conf * 100) }}%)</span>
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ pred_conf * 100 }}%"></div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Reputation Impact -->
+            <div class="reputation-impact" style="margin-top: 16px; padding: 12px; background: rgba(64, 93, 230, 0.05); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <i class="fas fa-chart-line" style="color: var(--primary-color);"></i>
+                    <strong style="font-size: 14px;">Reputation Impact</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; color: var(--text-secondary);">Current Score:</span>
+                    <span style="font-weight: 600; color: {% if user.reputation_score >= 7 %}var(--success-color){% elif user.reputation_score >= 5 %}var(--warning-color){% else %}var(--danger-color){% endif %};">
+                        {{ "%.1f"|format(user.reputation_score) }}/10
+                    </span>
+                </div>
+                {% if ar.bullying_detected is defined and ar.bullying_detected %}
+                <div style="font-size: 12px; color: var(--danger-color); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Reputation score decreased due to cyberbullying detection
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Footer -->
+            <div style="margin-top: 16px; text-align: right;">
+                <a href="{{ url_for('post_analysis', post_id=analysis_results.post_id) }}" 
+                   class="btn btn-outline" style="font-size: 13px; padding: 8px 16px;">
+                    <i class="fas fa-search-plus"></i> View Full Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Posts Feed -->
+    {% for post in posts %}
+    <div class="post-card" id="post-{{ post.id }}">
+        <div class="post-header">
+            <div class="profile-pic">
+                <img loading="lazy" decoding="async" src="{{ avatar(post.author.profile_pic) }}" 
+                     class="profile-pic-img" alt="{{ post.author.username }}">
+            </div>
+            <div style="flex: 1;">
+                <strong>{{ post.author.username }}</strong>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                    {{ post.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                </div>
+            </div>
+            <div class="post-options">
+                <i class="fas fa-ellipsis-h" style="cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.3s ease;"></i>
+            </div>
+        </div>
+
+        <!-- Post Image -->
+        <img loading="lazy" decoding="async" src="{{ post_media(post.image) }}" class="post-media" alt="Post image">
+
+        <!-- Post Actions -->
+        <div class="post-actions">
+            <div class="action-left">
+                <button class="action-btn like-btn {% if post.likes|selectattr('user_id', 'equalto', user.id)|list %}liked{% endif %}" 
+                        data-post-id="{{ post.id }}">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <button class="action-btn comment-focus-btn" data-focus-comment="{{ post.id }}">
+                    <i class="fas fa-comment"></i>
+                </button>
+                <button class="action-btn share-btn" data-post-id="{{ post.id }}">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <button class="action-btn save-btn">
+                <i class="fas fa-bookmark"></i>
+            </button>
+        </div>
+
+        <!-- Post Stats -->
+        <div class="post-stats">
+            <strong id="like-count-{{ post.id }}">{{ post.likes|length }} likes</strong>
+        </div>
+
+        <!-- Post Caption -->
+        <div class="post-caption">
+            <strong>{{ post.author.username }}</strong> {{ post.caption }}
+        </div>
+
+        <!-- Comments Section -->
+        <div class="post-comments" id="comments-{{ post.id }}">
+            {% for comment in post.comments %}
+            <div class="comment {% if comment.bullying_score > 0.4 %}bullying-detected{% endif %}">
+                <div style="display: flex; align-items: flex-start; gap: 8px;">
+                    <strong style="font-size: 14px;">{{ comment.author.username }}</strong>
+                    <span style="flex: 1; font-size: 14px;">{{ comment.text }}</span>
+                </div>
+                {% if comment.bullying_score > 0.4 %}
+                <div style="color: var(--danger-color); font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-shield-alt"></i>
+                    Cyberbullying detected
+                </div>
+                {% endif %}
+                {% set eb = comment.text|emoji_brief(comment.bullying_score) %}
+                {% if eb %}
+                <div class="comment-emoji" title="{{ eb.flags|join(' · ') }}">
+                    <span>{% for t in eb.top %}{{ t.emoji }}{% if t.count > 1 %}×{{ t.count }}{% endif %} {% endfor %}</span>
+                    <span>{{ eb.sentiment }} emoji tone</span>
+                    {% if eb.risk_level != 'low' %}<span class="ce-risk-{{ eb.risk_level }}">{{ 'High' if eb.risk_level == 'high' else 'Medium' }} emoji risk</span>{% endif %}
+                </div>
+                {% endif %}
+                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                    {{ comment.created_at.strftime('%b %d, %Y') }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Add Comment Form -->
+        <form class="comment-form{% if is_blocked %} disabled{% endif %}" data-post-id="{{ post.id }}">
+            <input type="text" class="comment-input" placeholder="Add a comment..." 
+                   id="comment-input-{{ post.id }}" maxlength="1000" required {% if is_blocked %}disabled placeholder="Commenting disabled - account restricted"{% endif %}>
+            <button type="submit" class="comment-btn" {% if is_blocked %}disabled{% endif %}>Post</button>
+        </form>
+    </div>
+    {% endfor %}
+
+    <!-- No Posts Message -->
+    {% if not posts %}
+    <div class="post-card" style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 48px; color: var(--text-secondary); margin-bottom: 16px;">
+            <i class="fas fa-images"></i>
+        </div>
+        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No posts yet</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Start following users to see their posts here!</p>
+        <a href="{{ url_for('explore') }}" class="btn btn-primary">
+            <i class="fas fa-compass"></i> Explore Posts
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="sidebar">
+    <!-- User Profile Card -->
+    <div class="user-card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div class="profile-pic">
+                <img loading="lazy" decoding="async" src="{{ avatar(user.profile_pic) }}" 
+                     class="profile-pic-img" alt="{{ user.username }}">
+            </div>
+            <div style="flex: 1;">
+                <strong style="display: block; margin-bottom: 2px;">{{ user.username }}</strong>
+                <div style="color: var(--text-secondary); font-size: 14px;">{{ user.full_name }}</div>
+            </div>
+        </div>
+        
+        <!-- Reputation Score -->
+        <div style="background: rgba(64, 93, 230, 0.1); padding: 12px; border-radius: 12px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14px; color: var(--text-secondary);">Reputation Score</span>
+                <span style="font-weight: 600; color: {% if user.reputation_score >= 7 %}var(--success-color){% elif user.reputation_score >= 5 %}var(--warning-color){% else %}var(--danger-color){% endif %};">
+                    {{ "%.1f"|format(user.reputation_score) }}/10
+                </span>
+            </div>
+            <div style="background: rgba(255,255,255,0.5); height: 6px; border-radius: 3px; overflow: hidden;">
+                <div style="height: 100%; background: var(--gradient-1); border-radius: 3px; width: {{ user.reputation_score * 10 }}%;"></div>
+            </div>
+            {% if user.reputation_score < 5 %}
+            <div style="color: var(--danger-color); font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 4px;">
+                <i class="fas fa-exclamation-triangle"></i>
+                Account restricted
+            </div>
+            {% endif %}
+        </div>
+        
+        <a href="{{ url_for('profile', username=user.username) }}" class="btn btn-outline" style="width: 100%;">
+            <i class="fas fa-user-edit"></i> View Profile
+        </a>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <strong style="color: var(--text-secondary); font-size: 14px;">Suggestions For You</strong>
+            <a href="{{ url_for('explore') }}" style="text-decoration: none; color: var(--text-primary); font-size: 12px; font-weight: 600;">See All</a>
+        </div>
+        
+        {% for suggestion in suggestions %}
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(219, 219, 219, 0.3);">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                <div class="profile-pic" style="width: 32px; height: 32px;">
+                    <img loading="lazy" decoding="async" src="{{ avatar(suggestion.profile_pic) }}" 
+                         class="profile-pic-img" alt="{{ suggestion.username }}">
+                </div>
+                <div style="flex: 1;">
+                    <strong style="font-size: 14px; display: block;">{{ suggestion.username }}</strong>
+                    <div style="color: var(--text-secondary); font-size: 12px;">{{ suggestion.full_name }}</div>
+                </div>
+            </div>
+            <button class="follow-btn btn {% if suggestion in user.following|map(attribute='followed') %}btn-outline{% else %}btn-primary{% endif %}" 
+                    data-user-id="{{ suggestion.id }}" style="font-size: 12px; padding: 6px 12px; min-width: 80px;">
+                {% if suggestion in user.following|map(attribute='followed') %}
+                    Following
+                {% else %}
+                    Follow
+                {% endif %}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Platform Info -->
+    <div class="suggestions-card">
+        <div style="margin-bottom: 16px;">
+            <strong style="color: var(--text-secondary); font-size: 14px;">About InstaSafe</strong>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; margin-bottom: 16px;">
+            <div>
+                <div style="font-weight: 700; color: var(--primary-color); font-size: 18px;">{{ posts|length }}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Posts</div>
+            </div>
+            <div>
+                <div style="font-weight: 700; color: var(--accent-color); font-size: 18px;">{{ user.following.count() }}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Following</div>
+            </div>
+            <div>
+                <div style="font-weight: 700; color: var(--success-color); font-size: 18px;">{{ user.followers.count() }}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Followers</div>
+            </div>
+        </div>
+        <div style="background: rgba(64, 93, 230, 0.05); padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary-color);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="fas fa-shield-alt" style="color: var(--primary-color);"></i>
+                <strong style="font-size: 13px;">AI Safety Active</strong>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                Our advanced AI (CLIP + Toxic BERT) monitors content to keep InstaSafe a positive space for everyone.
+            </p>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

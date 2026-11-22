@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaSafe - Cyberbullying Protected Social Media</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body data-page="{{ request.endpoint }}" data-blocked="{{ '1' if is_blocked else '0' }}">
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">InstaSafe</div>
+            <input type="text" class="search-box" placeholder="🔍 Search..." id="searchInput">
+            <div class="nav-icons">
+                <a href="{{ url_for('index') }}" class="nav-icon {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="{{ url_for('explore') }}" class="nav-icon {% if request.endpoint == 'explore' %}active{% endif %}">
+                    <i class="fas fa-compass"></i>
+                </a>
+                <a href="{{ url_for('reels') }}" class="nav-icon {% if request.endpoint == 'reels' %}active{% endif %}">
+                    <i class="fas fa-video"></i>
+                </a>
+                <a href="{{ url_for('liked_posts') }}" class="nav-icon {% if request.endpoint == 'liked_posts' %}active{% endif %}">
+                    <i class="fas fa-heart"></i>
+                </a>
+                
+                <!-- User Menu with Dropdown -->
+                <div class="user-menu">
+                    <a href="{{ url_for('profile', username=user.username) if user else '#' }}" class="nav-icon">
+                        <i class="fas fa-user"></i>
+                    </a>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile', username=user.username) if user else '#' }}" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Profile</span>
+                        </a>
+                        <a href="{{ url_for('settings') }}" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="{{ url_for('follow_requests') }}" class="dropdown-item">
+                            <i class="fas fa-user-friends"></i>
+                            <span>Follow Requests</span>
+                            {% if user and user.is_private and pending_requests_count > 0 %}
+                            <span style="background: var(--danger-color); color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">
+                                {{ pending_requests_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        <div style="height: 1px; background: rgba(219, 219, 219, 0.3); margin: 8px 0;"></div>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        {% if is_blocked %}
+        <div class="restricted-banner"><i class="fas fa-ban"></i>
+            Your account is restricted (reputation {{ "%.1f"|format(user.reputation_score) }}/10 is below {{ "%g"|format(block_threshold) }}).
+            You cannot upload, post, comment or follow.
+        </div>
+        {% endif %}
+        {% block flashes %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'error' if category == 'error' else 'success' if category == 'success' else 'warning' }}" style="grid-column:1/-1;">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+        {% endblock %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Floating Action Button for New Post -->
+    <button class="floating-action-btn{% if is_blocked %} disabled{% endif %}" onclick="showUploadModal()" title="{% if is_blocked %}Your account is restricted{% else %}New post{% endif %}">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%;">
+            <h3 style="margin-bottom: 20px; text-align: center;">Create New Post</h3>
+            <form action="{{ url_for('upload_post') }}" method="POST" enctype="multipart/form-data">
+                <div style="margin-bottom: 15px;">
+                    <input type="file" name="image" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" required style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <textarea name="caption" maxlength="500" placeholder="Write a caption..." style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 10px; resize: vertical; min-height: 100px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="hideUploadModal()" class="btn btn-outline" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Share</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="grid-column: 1 / -1;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 28px; font-weight: 300; margin-bottom: 8px;">Explore</h1>
+        <p style="color: var(--text-secondary);">Discover new content and connect with others</p>
+    </div>
+
+    {% if posts %}
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+        {% for post in posts %}
+        <div class="post-explore-card" style="position: relative; aspect-ratio: 1; background: var(--bg-primary); cursor: pointer;">
+            {% if post.is_video %}
+            <video style="width: 100%; height: 100%; object-fit: cover;">
+                <source src="{{ post_media(post.image) }}" type="video/mp4">
+            </video>
+            <div style="position: absolute; top: 8px; right: 8px; color: white; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px;">
+                <i class="fas fa-play"></i>
+            </div>
+            {% else %}
+            <img loading="lazy" decoding="async" src="{{ post_media(post.image) }}" 
+                 style="width: 100%; height: 100%; object-fit: cover;" alt="Post image">
+            {% endif %}
+            
+            <!-- Hover overlay -->
+            <div class="explore-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                                              background: rgba(0,0,0,0.4); display: flex; align-items: center; 
+                                              justify-content: center; opacity: 0; transition: opacity 0.3s; color: white;">
+                <div style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px;">
+                        <div>
+                            <i class="fas fa-heart"></i>
+                            <div style="font-size: 14px; font-weight: 600;">{{ post.likes|length }}</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-comment"></i>
+                            <div style="font-size: 14px; font-weight: 600;">{{ post.comments|length }}</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px;">by {{ post.author.username }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="post-card" style="text-align: center; padding: 60px 20px;">
+        <i class="fas fa-compass" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 12px; color: var(--text-secondary);">No posts to explore</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            When there are new posts from users you don't follow, they'll appear here.
+        </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Feed</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .post-explore-card:hover .explore-overlay {
+        opacity: 1;
+    }
+</style>
+
+<script>
+    // Make explore cards clickable to view posts
+    document.querySelectorAll('.post-explore-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // In a real app, this would navigate to the post detail page
+            // For now, we'll show an alert
+            alert('In a full implementation, this would open the post detail view.');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="grid-column: 1 / -1; max-width: 600px; margin: 0 auto;">
+    <div class="post-card">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border-color);">
+            <h2 style="font-size: 24px; font-weight: 600;">Follow Requests</h2>
+            <p style="color: var(--text-secondary); margin-top: 8px;">
+                People who want to follow you
+            </p>
+        </div>
+        
+        <div style="padding: 24px;">
+            {% if requests %}
+            <div class="requests-list">
+                {% for request in requests %}
+                <div class="request-item" style="display: flex; align-items: center; justify-content: space-between; 
+                                              padding: 16px; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img loading="lazy" decoding="async" src="{{ avatar(request.requester.profile_pic) }}" 
+                             class="profile-pic" alt="{{ request.requester.username }}">
+                        <div>
+                            <strong>{{ request.requester.username }}</strong>
+                            <div style="color: var(--text-secondary); font-size: 14px;">
+                                {{ request.requester.full_name }}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                Requested {{ request.created_at.strftime('%b %d') }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary accept-btn" 
+                                data-request-id="{{ request.id }}" 
+                                style="padding: 6px 12px; font-size: 14px;">
+                            Accept
+                        </button>
+                        <button class="btn btn-outline reject-btn" 
+                                data-request-id="{{ request.id }}"
+                                style="padding: 6px 12px; font-size: 14px;">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 40px 20px;">
+                <i class="fas fa-user-friends" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+                <h3 style="margin-bottom: 12px; color: var(--text-secondary);">No pending requests</h3>
+                <p style="color: var(--text-secondary);">
+                    When someone requests to follow you, it will appear here.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handle follow request actions
+    document.querySelectorAll('.accept-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const requestId = this.dataset.requestId;
+            await handleRequest(requestId, 'accept');
+        });
+    });
+    
+    document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const requestId = this.dataset.requestId;
+            await handleRequest(requestId, 'reject');
+        });
+    });
+    
+    async function handleRequest(requestId, action) {
+        const response = await fetch(`/handle-follow-request/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action: action })
+        });
+        
+        if (response.ok) {
+            // Remove the request item from the list
+            const requestItem = document.querySelector(`[data-request-id="${requestId}"]`).closest('.request-item');
+            requestItem.style.opacity = '0.5';
+            setTimeout(() => {
+                requestItem.remove();
+                
+                // If no requests left, show empty state
+                if (document.querySelectorAll('.request-item').length === 0) {
+                    location.reload();
+                }
+            }, 500);
+        } else {
+            alert('Error processing request');
+        }
+    }
+</script>
+{% endblock %}
